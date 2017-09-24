@@ -1,0 +1,458 @@
+%%%%%%%%%%%%%%%%%%%%%核心代码来自http://tex.stackexchange.com/a/159234
+\documentclass{standalone}%[varwidth=18cm,] mutlti=true [tikz]
+\RequirePackage{luatex85}
+\def\pgfsysdriver{pgfsys-pdftex.def}
+\usepackage{luatexja-fontspec}
+\usepackage{tikz}
+\usetikzlibrary{shapes,
+                calc,
+                fpu,
+                patterns,
+                decorations.pathreplacing,
+                arrows,
+                shapes.geometric,
+                decorations.pathmorphing,
+                spy,
+                backgrounds,
+                shapes.callouts,
+                decorations.fractals,
+                decorations.markings,
+                angles,%http://tex.stackexchange.com/questions/219038/tikz-draw-angle-with-label-between-lines
+                quotes,
+                math
+                }
+\usepackage{pgfplots}
+    \usepgfplotslibrary{fillbetween}
+\usepackage{pdftexcmds}
+\usepackage{xparse}
+\usepackage{etoolbox}
+\usepackage{animate}
+\usepackage{amsmath}
+\usepackage{ifthen}
+\usepackage{tagging}
+        %\usetag{AuxiliaryLine}%显示点之间的辅助连线
+        %\usetag{DraftNode} %显示所有标记 变量
+        %\usetag{DraftGrid} %显示网格辅助线
+        %\usetag{DraftCirclePoint}%显示点的位置
+\usepackage{fp}
+\usepackage{graphicx}
+        \DeclareGraphicsExtensions{.pdf,.png,.jpg,.mps}
+%\usepackage{lua-visual-debug}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%变量定义
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%载入命令 设置
+\makeatletter\input{DEConfig/Font.set}\makeatother %载入字体设置
+%\makeatletter\input{DEConfig/TheBBCstyleCUG.set}\makeatother %BBC LOGO 形式 CUG LOGO
+%\makeatletter\input{DEConfig/TikzVariables.tikzconfig}\makeatother %载入全局变量
+\makeatletter\input{DEConfig/FillPattern.tikzconfig}\makeatother %填充效果
+%\makeatletter\input{DEConfig/HelpLines.tikzset}\makeatother %坐标辅助线
+%\makeatletter\input{DEConfig/LaserBeamStyle.tikzset}\makeatother %线两边模糊效果
+%\makeatletter\input{DEConfig/CoteFunction.tikzcmd}\makeatother      %CAD尺寸标记效果
+%\makeatletter\input{DEConfig/DrawNewtonRing.tikzcmd}\makeatother    %画完整牛顿环0-\MaxRings环,并标识出每环水平方向左右两边 及左上 右上的标记点
+%\makeatletter\input{DEConfig/IndicateRingNumber.tikzcmd}\makeatother %显示怎么数环
+%\makeatletter\input{DEConfig/DmDsLmLsCote.tikzcmd}\makeatother      %标记Dm Ds Lm Ls 和它们之间的关系
+\makeatletter\input{DEConfig/CalculateFunction.tikzcmd}\makeatother      %计算两点间距离
+%\makeatletter\input{DEConfig/DrawCross.tikzcmd}\makeatother         %画目镜十字线命令使用了线两边模糊效果,因此LaserBeamStyle.tikzset应先加载
+%\makeatletter\input{DEConfig/ShowHowToTakeReading.tikzcmd}\makeatother %演示如何读数 m=\m,s=\s
+\makeatletter\input{DEConfig/TikzPictureStyleDefine.tikzset}\makeatother %预定义的形式
+
+\makeatletter\input{DEConfig/TikzTheBasicShape.tikzset}\makeatother %斜面和滑块
+
+\def\AuxiliaryNodeFontSize{2} %单位为pt
+
+\pgfmathsetmacro{\Inclination}{15}  %斜面倾角 转换为弧度
+\pgfmathsetmacro{\SlopeLength}{10mm}%斜面长度 仅指水平方向 单位mm
+\pgfmathsetmacro{\SlopeV}{\SlopeLength*sin(\Inclination)}%斜面竖直高度
+\pgfmathsetmacro{\SlopeH}{\SlopeLength*cos(\Inclination)}%斜面水平宽度
+\pgfmathsetmacro{\SlopeTriangleHeight}{\SlopeH*sin(\Inclination)}%斜面斜边高度
+\pgfmathsetmacro{\CirclePointSize}{0.1}
+\pgfmathsetmacro{\TheSensorSize}{0.1}
+
+\pgfmathsetmacro{\FrameMargin}{0mm}%页边距
+
+
+\pgfmathsetmacro{\CanvasW}{1.9mm}%画布左右边缘增加 \CanvasW  \m=22时 1.65
+\pgfmathsetmacro{\CanvasH}{0.85mm}%画布上下边缘增加 \CanvasH
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%关于滑块
+\pgfmathsetmacro{\TheBlockScaleRatio}{0.2}%滑块缩放因子
+\pgfmathsetmacro{\TheBlockMainBodyLength}{\TheBlockScaleRatio*6mm}%滑块主体长度
+\pgfmathsetmacro{\TheBlockMainBodyHeight}{\TheBlockScaleRatio*2.6mm}%滑块主体高度
+\pgfmathsetmacro{\TheBlockHeadWidth}{\TheBlockScaleRatio*0.25mm}%挡块宽度
+\pgfmathsetmacro{\TheBlockHeadHeight}{\TheBlockScaleRatio*1.5mm}%挡块高度
+\pgfmathsetmacro{\TheBlockHeadAndEdgeDistance}{\TheBlockScaleRatio*2.2mm}%挡块边缘距滑块主体边缘距离
+\pgfmathsetmacro{\TheBlockHeadsDistance}{\TheBlockMainBodyLength-2*(\TheBlockHeadWidth+\TheBlockHeadAndEdgeDistance)}%挡块间距离
+
+\pgfmathsetmacro{\TheTopAndRealsePointDistance}{.1mm}%释放点距顶点的长度
+\pgfmathsetmacro{\TheRightAndStopPointDistance}{0.3mm}%斜面右顶点距停止点的斜面距离
+
+
+\pgfmathsetmacro{\GravityAcceleration}{9.8} %重力加速度
+\pgfmathsetmacro{\ThePZero}{\SlopeLength/4} %第一个光电门位置(与斜面顶点距离)
+\pgfmathsetmacro{\ThePZeroPSecondDistance}{\SlopeLength/4} %两光电门间距离
+\pgfmathsetmacro{\TheOffsetOfPAndBlockHeadCenter}{0.0048mm} %光电门与挡块中心并不重合(挡块中心超前了)，需要补偿
+
+\def\TheAnimationFPS{10}
+\def\TheAnimationFirstStepFrames{5}%第一步 帧数
+\def\TheAnimationSecondStepFrames{1}%第二步 帧数   只有 一帧
+\def\TheAnimationThirdStepFrames{5}%第三步 帧数
+\def\TheAnimationFourthStepFrames{1}%第四步 帧数     只有 一帧
+\def\TheAnimationFifthStepFrames{5}%第五步 帧数
+
+\pgfmathsetmacro{\AnimationTotalFrame}{int(\TheAnimationFirstStepFrames+\TheAnimationSecondStepFrames+\TheAnimationThirdStepFrames+\TheAnimationFourthStepFrames+\TheAnimationFifthStepFrames)}
+\begin{document}
+             \begin{animateinline}[controls,%
+                                  %autoplay,%
+                                  %loop,%
+                                  buttonsize=1.8em,%
+                                  %poster=1,%
+                                  method=ocg,%
+                                  label=TheBlckRealseOnSlope,%
+                                  ]{\TheAnimationFPS}%
+            \multiframe{18}{iCount=0+1}{
+            \begin{tikzpicture}%
+               %\DrawTheSlopeWithPattern{x偏移量}{y偏移量}
+            \DrawTheSlopeWithPattern{0}{0}
+            %旋转http://tex.stackexchange.com/questions/142425/rotate-a-path-around-a-point
+%http://tex.stackexchange.com/questions/19348/how-to-draw-a-line-passing-through-a-point-and-perpendicular-to-another
+% \foreach \i in {2,3,...,8}
+%             \coordinate (BlockRotateRoundPoint\i) at ($(SlopeTop)!(SlopeOrign)!(SlopeRight)+(\i*)$);%斜边高线与斜边交点
+%             \coordinate (TheBlockReleasePoint) at
+%              %%%特别注意要作旋转辅助点,还有要使用内置计算提高鲁棒性,例如BlockRotateRoundPoint的计算
+%            \begin{scope}[rotate around={(-\Inclination):(BlockRotateRoundPoint)},shift={(BlockRotateRoundPoint)}]
+%             \draw [fill=black] (BlockRotateRoundPoint) circle (0.5);
+%                \DrawTheBlockWithPattern{0}{0}
+%            \end{scope}
+             \coordinate (TheSlopeHeightPoint) at ($(SlopeTop)!(SlopeOrign)!(SlopeRight)$);%斜边高线与斜边交点
+             \calcLength(TheSlopeHeightPoint,SlopeTop){TopAndTheSlopeHeightPointDistance} %三角形顶点到斜边中线点的距离
+             \pgfmathsetmacro{\TheBlockReleasePointShiftXOfTheSlopeHeightPoint}{\TopAndTheSlopeHeightPointDistance*cos(\Inclination)/28.3464567}%三角形顶点到斜边中线点的距离 X 分量
+             \pgfmathsetmacro{\TheBlockReleasePointShiftYOfTheSlopeHeightPoint}{\TopAndTheSlopeHeightPointDistance*sin(\Inclination)/28.3464567}%三角形顶点到斜边中线点的距离 Y 分量
+             \coordinate (TheBlockReleasePoint) at ($(TheSlopeHeightPoint)+(-\TheBlockReleasePointShiftXOfTheSlopeHeightPoint,\TheBlockReleasePointShiftYOfTheSlopeHeightPoint)+({\TheTopAndRealsePointDistance*cos(\Inclination)},{-\TheTopAndRealsePointDistance*sin(\Inclination)})$);              %滑块释放点 (滑块左下角所处的位置)
+             \coordinate (TheBlockStopPoint) at ($(SlopeRight)+({-\TheRightAndStopPointDistance*cos(\Inclination)},{\TheRightAndStopPointDistance*sin(\Inclination)})$);%滑块停止点
+
+             %%%%%%%%%%%%%%%%%%%%%%%光电门位置确定
+             %过释放点 作  滑块过斜面时两挡块中心轨迹线的垂线  交点为 分段运动的参考点准备点 ,同时也是释放点垂直于斜面的正上方,与两挡块中心的连线重合  -----------公式   （滑块主体高度+挡块高度/2）等于与释放点的距离   \TheBlockMainBodyHeight+\TheBlockHeadHeight/2
+             \coordinate (TheBlockStepMotionRefPointPrep) at ($(TheBlockReleasePoint)+({(\TheBlockMainBodyHeight+\TheBlockHeadHeight/2)*cos(90-\Inclination)},{(\TheBlockMainBodyHeight+\TheBlockHeadHeight/2)*sin(90-\Inclination)})$);
+             %当滑块位于释放点时 右挡块 中心的位置   分段运动的参考点  --------------斜面方向长度=滑块主体长度-右挡块中心到滑块右面的距离    (\TheBlockMainBodyLength-(\TheBlockHeadWidth/2+\TheBlockHeadAndEdgeDistance))
+             \coordinate (TheRightHeadCenterLocationWhenRealse) at ($(TheBlockStepMotionRefPointPrep)+({(\TheBlockMainBodyLength-(\TheBlockHeadWidth/2+\TheBlockHeadAndEdgeDistance))*cos(\Inclination)},{-(\TheBlockMainBodyLength-(\TheBlockHeadWidth/2+\TheBlockHeadAndEdgeDistance))*sin(\Inclination)})$);
+              %两个光电门 位置
+             \coordinate (ThePZeroLocation) at ($(TheBlockStepMotionRefPointPrep)+({\ThePZero*cos(\Inclination)},{-\ThePZero*sin(\Inclination)})+({-\TheTopAndRealsePointDistance*cos(\Inclination)},{\TheTopAndRealsePointDistance*sin(\Inclination)})$);%%第一个光电门位置   分段运动的参考点准备点+与斜面顶点距离-释放点距顶点的长度    距离
+             \coordinate (ThePSecondLocation) at ($(ThePZeroLocation)+({\ThePZeroPSecondDistance*cos(\Inclination)},{-\ThePZeroPSecondDistance*sin(\Inclination)})$);%第二个光电门位置
+             %画光电门
+             \draw [DraftCirclePoint] (ThePZeroLocation) circle (\TheSensorSize);
+             \draw [DraftCirclePoint] (ThePSecondLocation) circle (\TheSensorSize);
+
+             \coordinate (TheBlockStopPointShiftOnHeadCenterMoveLine) at ($(TheBlockStopPoint)+({(\TheBlockMainBodyHeight+\TheBlockHeadHeight/2)*cos(90-\Inclination)},{(\TheBlockMainBodyHeight+\TheBlockHeadHeight/2)*sin(90-\Inclination)})$);%滑块停止点 在 挡块中心运动轨迹线上的投影
+\tagged{DraftCirclePoint}{
+             \fill [DraftCirclePoint] (TheBlockStopPoint) circle (\CirclePointSize);
+             \fill [DraftCirclePoint] (TheBlockStopPointShiftOnHeadCenterMoveLine) circle (\CirclePointSize);
+             }
+\tagged{AuxiliaryLine}{
+             \draw [AuxiliaryLineStyle] (TheBlockStopPointShiftOnHeadCenterMoveLine)--(TheBlockStopPoint);
+             }
+\tagged{DraftCirclePoint}{
+        \foreach \ThePoint in {(TheSlopeHeightPoint),(TheBlockReleasePoint),(TheBlockStepMotionRefPointPrep),(TheRightHeadCenterLocationWhenRealse)}{
+	    \fill \ThePoint [red] circle (\CirclePointSize);}
+	}
+\tagged{AuxiliaryLine}{
+      \draw [AuxiliaryLineStyle] (TheSlopeHeightPoint)--(SlopeOrign); %斜面高线 辅助线
+      \draw [AuxiliaryLineStyle] (TheBlockReleasePoint)--(TheBlockStepMotionRefPointPrep); %释放点辅助线
+      \draw [AuxiliaryLineStyle,ExtendedLine=30cm] (TheBlockStepMotionRefPointPrep)--(TheRightHeadCenterLocationWhenRealse);%挡块中心点辅助
+}
+             \calcLength(TheBlockReleasePoint,TheBlockStopPoint){TheBlockTravelLength} %释放点与停止点间的距离
+
+              %计算每步需要移动的总长
+             \pgfmathsetmacro{\TheDistanceOfTwoBlockHeadCenter}{\TheBlockMainBodyLength-2*(\TheBlockHeadWidth/2+\TheBlockHeadAndEdgeDistance)} %滑块两挡块中心间距
+             \calcLength(TheRightHeadCenterLocationWhenRealse,ThePZeroLocation){FirstStepMoveLength} %第一步需要移动的长度   返回值为pt /28.3464567
+             \pgfmathsetmacro{\SecondStepMoveLength}{\TheDistanceOfTwoBlockHeadCenter}%第二步需要移动的长度   单位为mm
+             \pgfmathsetmacro{\ThirdStepMoveLength}{\ThePZeroPSecondDistance-\TheDistanceOfTwoBlockHeadCenter}%第三步需要移动的长度   单位为mm
+             \pgfmathsetmacro{\FouthStepMoveLength}{\SecondStepMoveLength}%第四步需要移动的长度  与第二步相同 单位为mm
+             \calcLength(ThePSecondLocation,TheBlockStopPointShiftOnHeadCenterMoveLine){AfterThirdStepMoveLength}%第三步后移动总长度 单位为pt    %
+             \pgfmathsetmacro{\FitfhStepMoveLength}{\AfterThirdStepMoveLength/28.3464567-\FouthStepMoveLength}%第四步后(第五步)需要移动的长度 单位为mm
+
+               %计算每帧需要移动的长度
+             \pgfmathsetmacro{\SecondStepMoveLengthPerFrame}{2*(\FirstStepMoveLength/28.3464567)/(\GravityAcceleration*pow(\TheAnimationFirstStepFrames,2))}   %第一步每帧移动长度 S=gt^2/2 => 平均每次移动 2S/gt^2
+             %第一步
+                    \pgfmathparse{int(\TheAnimationFirstStepFrames+1)}\edef\StoreResult{\pgfmathresult}%ifnumcomp 没有 <= 选项,因此先加1%http://tex.stackexchange.com/questions/337831/pgfmathparse-basic-usage
+      \ifnumcomp{\iCount}{<}{\StoreResult}{%第一步移动  \TheAnimationFirstStepFrames 帧
+                      \pgfmathsetmacro{\FirstStepMoveLengthPerFrame}{2*(\FirstStepMoveLength/28.3464567)/(\GravityAcceleration*pow(\TheAnimationFirstStepFrames,2))}   %第一步每帧移动长度 S=gt^2/2 => 平均每次移动 2S/gt^2
+                      \pgfmathsetmacro{\CurrentTravelStepLength}{\FirstStepMoveLengthPerFrame}
+                      \pgfmathsetmacro{\AfterReleaseTheBlockShiftXFormStart}{((\CurrentTravelStepLength*pow(\iCount,2)*\GravityAcceleration)/2-\TheOffsetOfPAndBlockHeadCenter)*cos(\Inclination)}%释放后与滑块左下角与释放点距离 X 分量
+                      \pgfmathsetmacro{\AfterReleaseTheBlockShiftYFormStart}{((\CurrentTravelStepLength*pow(\iCount,2)*\GravityAcceleration)/2-\TheOffsetOfPAndBlockHeadCenter)*sin(\Inclination)}%%释放后与滑块左下角与释放点距离  Y 分量
+                      \xdef\AfterReleaseTheBlockShiftXFormStart{\AfterReleaseTheBlockShiftXFormStart}
+                      \xdef\AfterReleaseTheBlockShiftYFormStart{\AfterReleaseTheBlockShiftYFormStart}
+                }{%第一步判断
+             %第二步
+                \pgfmathparse{int(\TheAnimationFirstStepFrames+\TheAnimationSecondStepFrames+1)}\edef\StoreResult{\pgfmathresult}%ifnumcomp 没有 <= 选项,因此先加1%http://tex.stackexchange.com/questions/337831/pgfmathparse-basic-usage
+      \ifnumcomp{\iCount}{<}{\StoreResult}{%第二步移动 \TheAnimationSecondStepFrames 帧
+                      \calcLength(ThePZeroLocation,TheRightHeadCenterLocationWhenRealse){tmpLength}%第一光电门与   分段运动的参考点 间的距离  pt  %
+                      \pgfmathsetmacro{\SecondStepMoveLengthPerFrame}{\tmpLength/28.3464567+\TheDistanceOfTwoBlockHeadCenter-\TheOffsetOfPAndBlockHeadCenter}   %第二步(只有一帧)移动长度 S=第一步移动长度+两挡块中心距离 + 补偿
+                      \pgfmathsetmacro{\CurrentTravelStepLength}{\SecondStepMoveLengthPerFrame}
+                      \pgfmathsetmacro{\AfterReleaseTheBlockShiftXFormStart}{\CurrentTravelStepLength*cos(\Inclination)}%释放后与滑块左下角与释放点距离 X 分量
+                      \pgfmathsetmacro{\AfterReleaseTheBlockShiftYFormStart}{\CurrentTravelStepLength*sin(\Inclination)}%%释放后与滑块左下角与释放点距离  Y 分量
+                      \xdef\AfterReleaseTheBlockShiftXFormStart{\AfterReleaseTheBlockShiftXFormStart}
+                      \xdef\AfterReleaseTheBlockShiftYFormStart{\AfterReleaseTheBlockShiftYFormStart}
+                }{%第二步判断
+             %第三步
+                \pgfmathparse{int(\TheAnimationFirstStepFrames+\TheAnimationSecondStepFrames+\TheAnimationThirdStepFrames+1)}\edef\StoreResult{\pgfmathresult}%ifnumcomp 没有 <= 选项,因此先加1%http://tex.stackexchange.com/questions/337831/pgfmathparse-basic-usage
+     \ifnumcomp{\iCount}{<}{\StoreResult}{%第三步移动   \TheAnimationThirdStepFrames 帧
+                      \calcLength(ThePSecondLocation,TheRightHeadCenterLocationWhenRealse){tmpLength}%第二光电门与   分段运动的参考点 间的距离  pt  %
+                      \pgfmathsetmacro{\ThirdStepMoveLengthPerFrame}{2*(\tmpLength/28.3464567)/(\GravityAcceleration*pow((\TheAnimationFirstStepFrames+\TheAnimationSecondStepFrames+\TheAnimationThirdStepFrames),2))}   %第三步移动总长度(相较分段运动的参考点)长度 S= 第一光电门与   分段运动的参考点 间的距离            第三步每帧移动长度 S=gt^2/2 => 平均每次移动 2S/gt^2
+                      \pgfmathsetmacro{\CurrentTravelStepLength}{\ThirdStepMoveLengthPerFrame}
+                     \calcLength(ThePZeroLocation,TheRightHeadCenterLocationWhenRealse){tmpLengthFst}%第一步移动长度  pt  %
+                      \pgfmathsetmacro{\SecondStepMoveLengthPerFrame}{\tmpLengthFst/28.3464567+\TheDistanceOfTwoBlockHeadCenter-\TheOffsetOfPAndBlockHeadCenter}   %第二步移动长度 S=第一步移动长度+两挡块中心距离 + 补偿
+                      %%第三步内部判断   要去掉长度单位再比较
+                    \pgfmathsetmacro{\CurrentTravelLengthx}{((\CurrentTravelStepLength*pow(\iCount,2)*\GravityAcceleration)/2-\TheOffsetOfPAndBlockHeadCenter)}% 当前移动长度
+                    \pgfmathsetmacro{\CurrentTravelLengthxWithoutUnits}{scalar(\CurrentTravelLengthx)}% 当前移动长度无单位
+                    \pgfmathsetmacro{\SecondStepMoveLengthPerFrameWithoutUnits}{scalar(\SecondStepMoveLengthPerFrame)} %第二步移动长度 无单位
+                    \ifthenelse{\lengthtest{\CurrentTravelLengthxWithoutUnits pt  < \SecondStepMoveLengthPerFrameWithoutUnits pt}}{ %如果此时计算出的移动长度反倒小于上一步的移动长度,那么把移动时间(\iCount) 加1
+                         \pgfmathsetmacro{\iCountx}{int(\iCount+1)}
+                         \xdef\iCount{\iCountx} }{} %后面这对大括号绝对不能少，如果缺少,会产生非预期的图像
+                      \pgfmathsetmacro{\AfterReleaseTheBlockShiftXFormStart}{((\CurrentTravelStepLength*pow(\iCount,2)*\GravityAcceleration)/2-3*\TheOffsetOfPAndBlockHeadCenter)*cos(\Inclination)}%释放后与滑块左下角与释放点距离 X 分量
+                      \pgfmathsetmacro{\AfterReleaseTheBlockShiftYFormStart}{((\CurrentTravelStepLength*pow(\iCount,2)*\GravityAcceleration)/2-3*\TheOffsetOfPAndBlockHeadCenter)*sin(\Inclination)}%%释放后与滑块左下角与释放点距离  Y 分量
+                      \xdef\AfterReleaseTheBlockShiftXFormStart{\AfterReleaseTheBlockShiftXFormStart}
+                      \xdef\AfterReleaseTheBlockShiftYFormStart{\AfterReleaseTheBlockShiftYFormStart}%%%%%%%%
+                }{%第三步判断
+              %第四步
+                 \pgfmathparse{int(\TheAnimationFirstStepFrames+\TheAnimationSecondStepFrames+\TheAnimationThirdStepFrames+\TheAnimationFourthStepFrames+1)}\edef\StoreResult{\pgfmathresult}%ifnumcomp 没有 <= 选项,因此先加1%http://tex.stackexchange.com/questions/337831/pgfmathparse-basic-usage
+                \ifnumcomp{\iCount}{<}{\StoreResult}{%第三步移动   \TheAnimationFourthStepFrames 帧
+                      \calcLength(ThePSecondLocation,TheRightHeadCenterLocationWhenRealse){tmpLength}%第二光电门与   分段运动的参考点 间的距离  pt  %
+                      \pgfmathsetmacro{\FourthStepMoveLengthPerFrame}{\tmpLength/28.3464567+\TheDistanceOfTwoBlockHeadCenter-3*\TheOffsetOfPAndBlockHeadCenter}   %第四步(只有一帧)移动长度 S=第三步移动长度+两挡块中心距离 + 补偿
+                      \pgfmathsetmacro{\CurrentTravelStepLength}{\FourthStepMoveLengthPerFrame}
+                      \pgfmathsetmacro{\AfterReleaseTheBlockShiftXFormStart}{\CurrentTravelStepLength*cos(\Inclination)}%释放后与滑块左下角与释放点距离 X 分量
+                      \pgfmathsetmacro{\AfterReleaseTheBlockShiftYFormStart}{\CurrentTravelStepLength*sin(\Inclination)}%%释放后与滑块左下角与释放点距离  Y 分量
+                      \xdef\AfterReleaseTheBlockShiftXFormStart{\AfterReleaseTheBlockShiftXFormStart}
+                      \xdef\AfterReleaseTheBlockShiftYFormStart{\AfterReleaseTheBlockShiftYFormStart}
+                }{%第四步判断
+                %第五步
+                \pgfmathparse{int(\TheAnimationFirstStepFrames+\TheAnimationSecondStepFrames+\TheAnimationThirdStepFrames+\TheAnimationFourthStepFrames+\TheAnimationFifthStepFrames+1)}\edef\StoreResult{\pgfmathresult}%ifnumcomp 没有 <= 选项,因此先加1%http://tex.stackexchange.com/questions/337831/pgfmathparse-basic-usage
+     \ifnumcomp{\iCount}{<}{\StoreResult}{%第五步移动   \TheAnimationFifthStepFrames 帧
+                      \calcLength(TheRightHeadCenterLocationWhenRealse,TheBlockStopPointShiftOnHeadCenterMoveLine){tmpLength}%停止点与   分段运动的参考点 间的距离  pt  %
+                      \pgfmathsetmacro{\FifthStepMoveLengthPerFrame}{2*(\tmpLength/28.3464567-(\TheBlockHeadWidth/2+\TheBlockHeadAndEdgeDistance))/(\GravityAcceleration*pow((\TheAnimationFirstStepFrames+\TheAnimationSecondStepFrames+\TheAnimationThirdStepFrames+\TheAnimationFourthStepFrames+\TheAnimationFifthStepFrames),2))}   %第五步移动总长度(相较分段运动的参考点)长度 S= 停止点与 分段运动的参考点 间的距离 -右挡块中心与滑块右边缘的距离           第五步每帧移动长度 S=gt^2/2 => 平均每次移动 2S/gt^2
+                      \pgfmathsetmacro{\CurrentTravelStepLength}{\FifthStepMoveLengthPerFrame}
+                     \calcLength(ThePSecondLocation,TheRightHeadCenterLocationWhenRealse){tmpLengthThi}%第三步移动长度  pt  %
+                      \pgfmathsetmacro{\FourthStepMoveLengthPerFrame}{\tmpLengthThi/28.3464567+\TheDistanceOfTwoBlockHeadCenter-3*\TheOffsetOfPAndBlockHeadCenter}   %第四步移动长度 S=第三步移动长度+两挡块中心距离 + 补偿
+                      %%第三步内部判断   要去掉长度单位再比较
+                    \pgfmathsetmacro{\CurrentTravelLengthx}{((\CurrentTravelStepLength*pow(\iCount,2)*\GravityAcceleration)/2-3*\TheOffsetOfPAndBlockHeadCenter)}% 当前移动长度
+                    \pgfmathsetmacro{\CurrentTravelLengthxWithoutUnits}{scalar(\CurrentTravelLengthx)}% 当前移动长度无单位
+                    \pgfmathsetmacro{\FourthStepMoveLengthPerFrameWithoutUnits}{scalar(\FourthStepMoveLengthPerFrame)} %第四步移动长度 无单位
+                    \ifthenelse{\lengthtest{\CurrentTravelLengthxWithoutUnits pt  < \FourthStepMoveLengthPerFrameWithoutUnits pt}}{ %如果此时计算出的移动长度反倒小于上一步的移动长度,那么把移动时间(\iCount) 加1
+                         \pgfmathsetmacro{\iCountx}{int(\iCount+1)}
+                         \xdef\iCount{\iCountx} }{} %后面这对大括号绝对不能少，如果缺少,会产生非预期的图像
+                      \pgfmathsetmacro{\AfterReleaseTheBlockShiftXFormStart}{((\CurrentTravelStepLength*pow(\iCount,2)*\GravityAcceleration)/2-5*\TheOffsetOfPAndBlockHeadCenter)*cos(\Inclination)}%释放后与滑块左下角与释放点距离 X 分量
+                      \pgfmathsetmacro{\AfterReleaseTheBlockShiftYFormStart}{((\CurrentTravelStepLength*pow(\iCount,2)*\GravityAcceleration)/2-5*\TheOffsetOfPAndBlockHeadCenter)*sin(\Inclination)}%%释放后与滑块左下角与释放点距离  Y 分量
+                      \xdef\AfterReleaseTheBlockShiftXFormStart{\AfterReleaseTheBlockShiftXFormStart}
+                      \xdef\AfterReleaseTheBlockShiftYFormStart{\AfterReleaseTheBlockShiftYFormStart}%%%%%%%%
+                }{%第五步判断
+                }
+                }%第四步判断
+                }%第三步判断
+                }%第二步判断
+                }%第一步判断
+
+
+             %
+              \coordinate (TheBlockCurrentLocationPoint\iCount) at ($(TheBlockReleasePoint)+(\AfterReleaseTheBlockShiftXFormStart,-\AfterReleaseTheBlockShiftYFormStart)$);
+               %%%特别注意要作旋转辅助点,还有要使用内置计算提高鲁棒性,例如BlockRotateRoundPoint的计算
+
+             \begin{scope}[rotate around={(-\Inclination):(TheBlockCurrentLocationPoint\iCount)},shift={(TheBlockCurrentLocationPoint\iCount)}]
+             %\draw [fill=black] (TheBlockCurrentLocationPoint\iCount) circle (0.5mm);
+                %\DrawTheBlockWithPattern{0}{0}
+                \DrawTheBlockWithPatternAndNumbered{0}{0}{\iCount}
+             \end{scope}
+
+
+
+            \end{tikzpicture}
+            }%
+            \end{animateinline}%
+\end{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\usetag{0}%%%%%只有玻璃和透镜 光路
+%%\usetag{1}%%%%装置 和牛顿环的像
+%%\usetag{2}%%%%%%%仅装置但包含辅助线
+%%\usetag{3}%%%%%怎么数环            %pdf动画单独一页standalone 选项为不要tikz
+%    %\usetag{3ToSWF}%pdf动画每帧为一页单独输出  此时 standalone 选项必须加 tikz ,要转换swf文件时才使用此行
+%%\usetag{4}%%%%dm ds lm ls 关系
+%%\usetag{5}%怎么读数              %pdf动画单独一页standalone 选项为不要tikz
+%    %\usetag{5ToSWF}%pdf动画每帧为一页单独输出    此时 standalone 选项必须加 tikz ,要转换swf文件时才使用此行
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+%\newcommand{\Logo}{\scalebox{0.05}{\includegraphics{DEConfig/CUGLogo}}}%校徽
+%
+%
+%\begin{document}%
+%%
+%\pagecolor{yellow!50}%页面颜色 50%黄色
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\tagged{0}{%只有玻璃和透镜
+%            \begin{tikzpicture}%
+%            \path[use as bounding box] (-6.2,-5.8) rectangle (6.2,4.85); %只显示该范围内图形
+%            %\draw (-8,-8) to[grid with coordinates] (7,6); %坐标 网格辅助线
+%            %%\DrawAFullNewtonRingsNormal
+%            \DrawRingOnlyCoordinate%
+%            %%\DrawLenGlassWithRings
+%            \node at ($(0,-1.75*\CanvasH)+(CoorL\MaxRings|-CoorUU\MaxRings)$)[opacity=0.62,anchor=center] (Logo){\Logo};%
+%            \node at (Logo)[yshift=20,scale=0.5]{\TheCUG};%
+%            \DrawLenGlassWithoutAuxiliaryLine%
+%            \end{tikzpicture}%
+%}%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\tagged{1}{%
+%            %%%%%%%%%%%%%%%%%%%%%%%%%%%%牛顿环和装置
+%            \begin{tikzpicture}%
+%            \path[use as bounding box] (-6.0,-5.45) rectangle (6.0,21.45); %只显示该范围内图形
+%            %\draw (-7,-5.6) to[grid with coordinates] (7,22); %坐标 网格辅助线
+%            \DrawAFullNewtonRingsNormal%
+%            \node at ($(0.15*\CanvasW,17.76*\CanvasH)+(CoorL\MaxRings|-CoorUU\MaxRings)$)[opacity=0.62,anchor=center](Logo) {\Logo};%
+%            \node at (Logo)[yshift=20,scale=0.5]{\TheCUG};%
+%            \DrawLenGlassWithRings%
+%            \PutAnEye%
+%            \end{tikzpicture}%
+%}%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\tagged{2}{%
+%            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%装置和辅助线
+%            \begin{tikzpicture}%
+%            \path[use as bounding box] (-6.0,-5.62) rectangle (6.0,10.29); %只显示该范围内图形
+%            %\draw (-7,-5.6) to[grid with coordinates] (7,10.25); %坐标 网格辅助线
+%            \DrawRingOnlyCoordinate%
+%            \node at ($(0.46*\CanvasW,-0.95*\CanvasH)+(CoorL\MaxRings|-CoorUU\MaxRings)$)[xshift=-18,yshift=135,opacity=0.62,anchor=center] (Logo){\Logo};%
+%            \node at (Logo)[yshift=20,scale=0.5]{\TheCUG};%
+%            \DrawLenGlassOnlyWithAuxiliaryLine%
+%            \end{tikzpicture}%
+%}%
+%%
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\pgfmathsetmacro{\IndicateNumberTotalFrame}{int(\PointOutRingMax+2)}%演示怎么数环时总帧数
+%\tagged{3}{%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%怎么数环
+%                                                %pdf动画
+%            \begin{animateinline}[controls,%
+%                                  %autoplay,%
+%                                  %loop,%
+%                                  buttonsize=1.8em,%
+%                                  %poster=1,%
+%                                  method=ocg,%
+%                                  label=RingsRead,%
+%                                  ]{0.75}%
+%            \multiframe{\IndicateNumberTotalFrame}{n=1+1}{%\IndicateNumberTotalFrame
+%                                                            \begin{tikzpicture}[]%
+%                                                            \path[use as bounding box] (-5.45,-5.8) rectangle (5.45,5.45); %只显示该范围内图形
+%                                                            %\draw (-6.2,-5.8) to[grid with coordinates] (6.2,5.8); %坐标 网格辅助线
+%                                                            \DrawAFullNewtonRingsNormal%
+%                                                            \node at ($(0.42*\CanvasW,-1.06*\CanvasH)+(CoorL\MaxRings|-CoorUU\MaxRings)$)[opacity=0.62,anchor=center] (Logo){\Logo};%
+%                                                            \node at (Logo)[yshift=20,scale=0.5]{\TheCUG};
+%                                                            \IndicateRingNumber%
+%                                                            \end{tikzpicture}%
+%                                                        }%
+%            \end{animateinline}%
+%}%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\tagged{3ToSWF}{%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%怎么数环
+%                                                %swf动画
+%            \foreach \i in {1,...,\IndicateNumberTotalFrame}{%\IndicateNumberTotalFrame
+%                                                            \begin{tikzpicture}[]%
+%                                                            \path[use as bounding box] (-5.45,-6.72) rectangle (5.45,5.5); %只显示该范围内图形
+%                                                            %\draw (-6.2,-5.8) to[grid with coordinates] (6.2,5.8); %坐标 网格辅助线
+%                                                            \DrawAFullNewtonRingsNormal%
+%                                                            \node at ($(0.42*\CanvasW,-\CanvasH)+(CoorL\MaxRings|-CoorUU\MaxRings)$)[opacity=0.62,anchor=center] (Logo){\Logo};%
+%                                                            \node at (Logo)[yshift=20,scale=0.5]{\TheCUG};%
+%                                                            \IndicateRingNumber%
+%                                                            \end{tikzpicture}%
+%                                                            }%
+%}%
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\tagged{4}{%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%dm ds lm ls 关系
+%            \begin{tikzpicture}%
+%            \path[use as bounding box] (-6.55,-6.4) rectangle (5.8,6.48); %只显示该范围内图形
+%            %\draw (-7.0,-6.76) to[grid with coordinates] (5.4,6.48); %坐标 网格辅助线
+%            \DrawRingMAndS%
+%            \node at ($(-0.15*\CanvasW,0)+(CoorL\MaxRings|-CoorUU\MaxRings)$) [yshift=4,opacity=0.62,anchor=center] (Logo) {\Logo};%
+%            \node at (Logo)[yshift=20,scale=0.5]{\TheCUG};%
+%            \DmDsCote%
+%            \LmLsCote%
+%            \DmDsLmLsRelationship%
+%            \end{tikzpicture}%
+%}%
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\pgfmathsetmacro{\TakeReadingTotalFrame}{int(3*(\m+2)+1)}%演示怎么读数时总帧数
+%\tagged{5}{%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%怎么测量dm ds
+%                                               %pdf动画
+%            \begin{animateinline}[controls,%
+%                                  %autoplay,
+%                                  %loop,
+%                                  buttonsize=1.8em,%
+%                                  %poster=1,%
+%                                  method=ocg,%
+%                                  label=TakeReading,%
+%                                  ]{1}%
+%            \multiframe{\TakeReadingTotalFrame}{N=1+1}{%73 %3 poster=1   \multiframe{\TakeReadingTotalFrame}{N=1+1}
+%                                                \begin{tikzpicture}[spy using outlines={circle, magnification=6, connect spies,},]%%dash pattern= on 1 off 1
+%                                                %\path[use as bounding box] (-6,-5.4) rectangle (6,6.48); %只显示该范围内图形
+%                                                %\draw (-8,-8) to[grid with coordinates] (8,8); %坐标 网格辅助线
+%                                                %\DrawAFullNewtonRingsShade%
+%                                                \DrawAFullNewtonRingsNormal
+%                                                %\DrawRingMAndS
+%                                                \node at ($(-0.63*\CanvasW,0)+(CoorL\MaxRings|-CoorUU\MaxRings)$) [opacity=0.62,anchor=center] (Logo) {\Logo};
+%                                                \node at (Logo)[yshift=20,scale=0.5]{\TheCUG};
+%                                                \ShowHowToTakeReading
+%                                                \end{tikzpicture}%
+%                                                     }%fram结束
+%            \end{animateinline}%
+%}%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\tagged{5ToSWF}{%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%怎么测量dm ds
+%                                        %swf动画
+%            \foreach \i in {1,...,\TakeReadingTotalFrame}{% 1-\TakeReadingTotalFrame
+%                                                            \begin{tikzpicture}[spy using outlines={circle, magnification=6, connect spies},]%dash pattern= on 1 off 1%
+%                                                            %\DrawAFullNewtonRingsShade%
+%                                                            \DrawAFullNewtonRingsNormal
+%                                                            \node at ($(1.22*\CanvasW,-0.96*\CanvasH)-(CoorLU\MaxRings|-CoorUU\MaxRings)$) {\tagged{Draft}{\tikz\draw[fill=red,color=red] circle(2pt);}{}};%扩大画布放置播放按钮
+%                                                            \node at ($(-0.63*\CanvasW,0)+(CoorL\MaxRings|-CoorUU\MaxRings)$) [opacity=0.62,anchor=center] (Logo) {\Logo};%放置Logo
+%                                                            \node at (Logo)[yshift=20,scale=0.5]{\TheCUG};%放置CUG字母
+%                                                            \ShowHowToTakeReading%
+%                                                            \end{tikzpicture}%
+%                                                            }%
+%}%
+%%
+%\end{document} 

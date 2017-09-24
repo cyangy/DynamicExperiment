@@ -1,0 +1,149 @@
+﻿%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%画斜面
+\newcommand{\DrawTheSlopeWithPattern}[2]{
+
+\pgfmathsetmacro{\TheSlopeOffsetX}{#1}
+\pgfmathsetmacro{\TheSlopeOffsetY}{#2}
+
+	\coordinate (SlopeOrign) at ($(\TheSlopeOffsetX,\TheSlopeOffsetY)+(0,0)$);%斜面直角底
+	\coordinate (SlopeRight) at ($(SlopeOrign)+(\SlopeH,0)$);%斜面尖底
+	\coordinate (SlopeTop) at ($(SlopeOrign)+(0,\SlopeV)$);%斜面尖顶
+	
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%画布扩大
+	\coordinate (FrameConnerLD) at ($(SlopeOrign)+(-\FrameMargin,-\FrameMargin)$);%画布左下角
+	\coordinate (FrameConnerUD) at ($(SlopeRight |- SlopeTop)+(\FrameMargin,\FrameMargin)+(0,\TheBlockMainBodyHeight)+(0,\TheBlockHeadHeight)$);%画布右上角  斜面高度 + 滑块总高度 + 页边距
+	\node at (FrameConnerLD) {};
+	\node at (FrameConnerUD) {};
+\tagged{DraftNode}{
+ \foreach \ThePoint/\TheText in {(SlopeOrign)/{:斜面原点},(SlopeRight)/{:斜面尖底},(SlopeTop)/{:斜面尖顶},(FrameConnerLD)/{:画布左下角},(FrameConnerUD)/{:画布右上角}}
+    {
+	\node at \ThePoint [AuxiliaryNodeStyle]{\fontsize{\AuxiliaryNodeFontSize pt}{1.2}\selectfont \ThePoint  \FontYanZhenQing{\TheText}};
+    }
+	}
+\tagged{DraftCirclePoint}{
+\foreach \ThePoint in {(SlopeOrign),(SlopeRight),(SlopeTop)}{
+	\fill \ThePoint [DraftCirclePoint] circle (\CirclePointSize);
+        }
+	}
+   %只显示该范围内图形
+    %\path[use as bounding box] (FrameConnerLD)  rectangle (FrameConnerUD);
+   %辅助线
+\tagged{DraftGrid}{
+		\draw (FrameConnerLD) to[grid with coordinates] (FrameConnerUD);
+		}
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%图形
+    %先绘制填充
+	\draw [SlopeFillPattern](SlopeOrign)--(SlopeRight)--(SlopeTop)--cycle;
+    %再绘制轮廓
+	\draw [SlopeFrameStyle](SlopeOrign)--(SlopeRight)--(SlopeTop)--cycle;
+    % 角度指示  http://tex.stackexchange.com/questions/219038/tikz-draw-angle-with-label-between-lines
+    \pic [PicAnglesStyle] {angle = SlopeTop--SlopeRight--SlopeOrign};
+}
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 滑块  单独
+ \newcommand{\DrawTheBlockWithPattern}[2]{
+            \pgfmathsetmacro{\TheBlockMainBodyOffsetX}{#1}
+            \pgfmathsetmacro{\TheBlockMainBodyOffsetY}{#2}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+			\coordinate (TheBlockLD) at (\TheBlockMainBodyOffsetX,\TheBlockMainBodyOffsetY);%滑块左下角
+			\coordinate (TheBlockUR)  at ($(TheBlockLD)+(\TheBlockMainBodyLength,\TheBlockMainBodyHeight)$);%滑块右上角
+            \coordinate (TheBlockLU)  at ($(TheBlockUR |- TheBlockLD)$);%滑块左上角
+			\coordinate (TheBlockUD)  at ($(TheBlockLD |- TheBlockUR)$);%滑块右下角
+%			%滑块主体
+			 %先绘制填充
+			\draw [BlockFillPattern] (TheBlockLD) rectangle  (TheBlockUR);%矩形
+			 %再绘制轮廓
+			\draw [BlockFrameStyle] (TheBlockLD) rectangle  (TheBlockUR);%矩形
+
+			\coordinate (TheBlockMainBodyCenter) at ($(TheBlockLD)!1.0/2.0!(TheBlockUR)$);%滑块主体中心 两点间的一半
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 			%左挡块
+			\coordinate (LeftHeadLD) at ($(TheBlockLD |- TheBlockUR)+(\TheBlockHeadAndEdgeDistance,0)$);%左挡块左下角
+			\coordinate (LeftHeadUR) at ($(LeftHeadLD)+(\TheBlockHeadWidth,\TheBlockHeadHeight)$);%左挡块右上角
+			\coordinate (LeftHeadCenter) at ($(LeftHeadLD)!1.0/2.0!(LeftHeadUR)$);%左挡块主体中心 两点间的一半
+			%先绘制填充
+			\draw  [BlockFillPattern] (LeftHeadLD) rectangle (LeftHeadUR);
+			\draw  [BlockFrameStyle] (LeftHeadLD) rectangle (LeftHeadUR);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+			%右挡块
+			\coordinate (RightHeadLD) at ($(LeftHeadLD)+(\TheBlockHeadsDistance+\TheBlockHeadWidth,0)$);%右挡块左下角
+			\coordinate (RightHeadUR) at ($(RightHeadLD)+(\TheBlockHeadWidth,\TheBlockHeadHeight)$);%右挡块右上角
+			\coordinate (RightHeadCenter) at ($(RightHeadLD)!1.0/2.0!(RightHeadUR)$);%右挡块主体中心 两点间的一半
+			 %先绘制填充
+			\draw  [BlockFillPattern] (RightHeadLD) rectangle (RightHeadUR);
+			 %再绘制轮廓
+			\draw  [BlockFrameStyle] (RightHeadLD) rectangle (RightHeadUR);		
+			
+		\tagged{DraftNode}{
+                \foreach \ThePoint/\TheText in 
+                            {(TheBlockLD)/{:滑块左下角},(TheBlockUR)/{:滑块右上角},(TheBlockLU)/{:滑块左上角},(TheBlockUD)/{:滑块右下角},(TheBlockMainBodyCenter)/{:滑块主体中心},(LeftHeadLD)/{:左挡块左下角},(LeftHeadUR)/{:左挡块右上角},(LeftHeadCenter)/{:左挡块中心},(RightHeadLD)/{:右挡块左下角},(RightHeadUR)/{:右挡块右上角},(RightHeadCenter)/{:右挡块中心}}
+                        {
+	                       \node at \ThePoint [AuxiliaryNodeStyle]{\fontsize{\AuxiliaryNodeFontSize pt}{1.2}\selectfont \ThePoint  \FontYanZhenQing{\TheText}};
+                        }
+			}
+\tagged{DraftCirclePoint}{
+                    \foreach \ThePoint in {(TheBlockLD),(TheBlockUR),(TheBlockLU),(TheBlockUD),(TheBlockMainBodyCenter),(LeftHeadLD),(LeftHeadUR),(LeftHeadCenter),(RightHeadLD),(RightHeadUR),(RightHeadCenter)}{
+	                \fill \ThePoint [DraftCirclePoint] circle (\CirclePointSize);
+                    }
+	               }			
+	    \tagged{DraftGrid}{
+		    \draw (TheBlockLD) to[grid with coordinates] (TheBlockUR);%主体网格辅助
+			\draw (LeftHeadLD) to[grid with coordinates] (LeftHeadUR);%左档快网格辅助
+			\draw (RightHeadLD) to[grid with coordinates] (RightHeadUR);%右档快网格辅助
+			}
+	}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 滑块  带编号
+\newcommand{\DrawTheBlockWithPatternAndNumbered}[3]{
+			\pgfmathsetmacro{\TheBlockMainBodyOffsetX}{#1}
+            \pgfmathsetmacro{\TheBlockMainBodyOffsetY}{#2}
+			\def\TheBlockNumber{#3}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+			\coordinate  (TheBlockLD\TheBlockNumber) at (\TheBlockMainBodyOffsetX,\TheBlockMainBodyOffsetY);%滑块左下角
+			\coordinate (TheBlockUR\TheBlockNumber)  at ($(TheBlockLD\TheBlockNumber)+(\TheBlockMainBodyLength,\TheBlockMainBodyHeight)$);%滑块右上角
+			\coordinate (TheBlockLU\TheBlockNumber)  at ($(TheBlockUR\TheBlockNumber |- TheBlockLD\TheBlockNumber)$);%滑块左上角
+			\coordinate (TheBlockUD\TheBlockNumber)  at ($(TheBlockLD\TheBlockNumber |- TheBlockUR\TheBlockNumber)$);%滑块右下角
+%			%滑块主体
+			 %先绘制填充
+			\draw [BlockFillPattern] (TheBlockLD\TheBlockNumber) rectangle  (TheBlockUR\TheBlockNumber);%矩形
+			 %再绘制轮廓
+			\draw [BlockFrameStyle] (TheBlockLD\TheBlockNumber) rectangle  (TheBlockUR\TheBlockNumber);%矩形
+
+			\coordinate (TheBlockMainBodyCenter\TheBlockNumber) at ($(TheBlockLD\TheBlockNumber)!1.0/2.0!(TheBlockUR\TheBlockNumber)$);%滑块主体中心 两点间的一半
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 			%左挡块
+			\coordinate (LeftHeadLD\TheBlockNumber) at ($(TheBlockLD\TheBlockNumber |- TheBlockUR\TheBlockNumber)+(\TheBlockHeadAndEdgeDistance,0)$);%左挡块左下角
+			\coordinate (LeftHeadUR\TheBlockNumber) at ($(LeftHeadLD\TheBlockNumber)+(\TheBlockHeadWidth,\TheBlockHeadHeight)$);%左挡块右上角
+			\coordinate (LeftHeadCenter\TheBlockNumber) at ($(LeftHeadLD\TheBlockNumber)!1.0/2.0!(LeftHeadUR\TheBlockNumber)$);%左挡块主体中心 两点间的一半
+			%先绘制填充
+			\draw  [BlockFillPattern] (LeftHeadLD\TheBlockNumber) rectangle (LeftHeadUR\TheBlockNumber);
+			\draw  [BlockFrameStyle] (LeftHeadLD\TheBlockNumber) rectangle (LeftHeadUR\TheBlockNumber);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+			%右挡块
+			\coordinate (RightHeadLD\TheBlockNumber) at ($(LeftHeadLD\TheBlockNumber)+(\TheBlockHeadsDistance+\TheBlockHeadWidth,0)$);%右挡块左下角
+			\coordinate (RightHeadUR\TheBlockNumber) at ($(RightHeadLD\TheBlockNumber)+(\TheBlockHeadWidth,\TheBlockHeadHeight)$);%右挡块右上角
+			\coordinate (RightHeadCenter\TheBlockNumber) at ($(RightHeadLD\TheBlockNumber)!1.0/2.0!(RightHeadUR\TheBlockNumber)$);%右挡块主体中心 两点间的一半
+			 %先绘制填充
+			\draw  [BlockFillPattern] (RightHeadLD\TheBlockNumber) rectangle (RightHeadUR\TheBlockNumber);
+			 %再绘制轮廓
+			\draw  [BlockFrameStyle] (RightHeadLD\TheBlockNumber) rectangle (RightHeadUR\TheBlockNumber);		
+			
+		\tagged{DraftNode}{
+                \foreach \ThePoint/\TheText in
+                            {(TheBlockLD\TheBlockNumber)/{:滑块左下角\TheBlockNumber},(TheBlockUR\TheBlockNumber)/{:滑块右上角\TheBlockNumber},(TheBlockLU\TheBlockNumber)/{:滑块左上角\TheBlockNumber},(TheBlockUD\TheBlockNumber)/{:滑块右下角\TheBlockNumber},(TheBlockMainBodyCenter\TheBlockNumber)/{:滑块主体中心\TheBlockNumber},(LeftHeadLD\TheBlockNumber)/{:左挡块左下角\TheBlockNumber},(LeftHeadUR\TheBlockNumber)/{:左挡块右上角\TheBlockNumber},(LeftHeadCenter\TheBlockNumber)/{:左挡块中心\TheBlockNumber},(RightHeadLD\TheBlockNumber)/{:右挡块左下角\TheBlockNumber},(RightHeadUR\TheBlockNumber)/{:右挡块右上角\TheBlockNumber},(RightHeadCenter\TheBlockNumber)/{:右挡块中心\TheBlockNumber}}
+                        {
+	                       \node at \ThePoint [AuxiliaryNodeStyle]{\fontsize{\AuxiliaryNodeFontSize pt}{1.2}\selectfont \ThePoint  \FontYanZhenQing{\TheText}};
+                        }
+			}
+\tagged{DraftCirclePoint}{
+                    \foreach \ThePoint in {(TheBlockLD\TheBlockNumber),(TheBlockUR\TheBlockNumber),(TheBlockLU\TheBlockNumber),(TheBlockUD\TheBlockNumber),(TheBlockMainBodyCenter\TheBlockNumber),(LeftHeadLD\TheBlockNumber),(LeftHeadUR\TheBlockNumber),(LeftHeadCenter\TheBlockNumber),(RightHeadLD\TheBlockNumber),(RightHeadUR\TheBlockNumber),(RightHeadCenter\TheBlockNumber)}{
+	                \fill \ThePoint [DraftCirclePoint] circle (\CirclePointSize);
+                    }
+	}			
+	    \tagged{DraftGrid}{
+		    \draw (TheBlockLD\TheBlockNumber) to[grid with coordinates] (TheBlockUR\TheBlockNumber);%主体网格辅助
+			\draw (LeftHeadLD\TheBlockNumber) to[grid with coordinates] (LeftHeadUR\TheBlockNumber);%左档快网格辅助
+			\draw (RightHeadLD\TheBlockNumber) to[grid with coordinates] (RightHeadUR\TheBlockNumber);%右档快网格辅助
+			}
+	}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
